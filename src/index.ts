@@ -20,6 +20,7 @@ import rehypeParse from "rehype-parse";
 import rehypeStringify from "rehype-stringify";
 import { Plugin, unified } from "unified";
 import { visit } from "unist-util-visit";
+import { fileURLToPath } from "url";
 import uslug from "uslug";
 
 // Allowed HTML attributes & tags
@@ -248,6 +249,9 @@ function uuid() {
   });
 }
 
+// Current directory
+const __dirname = fileURLToPath(new URL(".", import.meta.url));
+
 export interface EpubContentOptions {
   title: string;
   data: string;
@@ -363,7 +367,7 @@ export class EPub {
     this.verbose = options.verbose ?? false;
 
     // Temporary folder for work
-    this.tempDir = options.tempDir ?? resolve("./tempDir/");
+    this.tempDir = options.tempDir ?? resolve(__dirname, "../tempDir/");
     this.tempEpubDir = resolve(this.tempDir, this.uuid);
 
     // Check the cover image
@@ -559,7 +563,7 @@ export class EPub {
 
     // Copy the CSS style
     if (!this.css) {
-      this.css = readFileSync(resolve("./templates/template.css"), { encoding: "utf8" });
+      this.css = readFileSync(resolve(__dirname, "../templates/template.css"), { encoding: "utf8" });
     }
     writeFileSync(resolve(this.tempEpubDir, "./OEBPS/style.css"), this.css);
 
@@ -618,19 +622,21 @@ export class EPub {
       );
     }
 
-    const opfPath = this.customOpfTemplatePath || resolve(`./templates/epub${this.version}/content.opf.ejs`);
+    const opfPath =
+      this.customOpfTemplatePath || resolve(__dirname, `../templates/epub${this.version}/content.opf.ejs`);
     if (!existsSync(opfPath)) {
       throw new Error("Custom file to OPF template not found.");
     }
     writeFileSync(resolve(this.tempEpubDir, "./OEBPS/content.opf"), await renderFile(opfPath, this));
 
-    const ncxTocPath = this.customNcxTocTemplatePath || resolve("./templates/toc.ncx.ejs");
+    const ncxTocPath = this.customNcxTocTemplatePath || resolve(__dirname, "../templates/toc.ncx.ejs");
     if (!existsSync(ncxTocPath)) {
       throw new Error("Custom file the NCX toc template not found.");
     }
     writeFileSync(resolve(this.tempEpubDir, "./OEBPS/toc.ncx"), await renderFile(ncxTocPath, this));
 
-    const htmlTocPath = this.customHtmlTocTemplatePath || resolve(`./templates/epub${this.version}/toc.xhtml.ejs`);
+    const htmlTocPath =
+      this.customHtmlTocTemplatePath || resolve(__dirname, `../templates/epub${this.version}/toc.xhtml.ejs`);
     if (!existsSync(htmlTocPath)) {
       throw new Error("Custom file to HTML toc template not found.");
     }
