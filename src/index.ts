@@ -10,7 +10,7 @@ import {
   mkdirSync,
   readFileSync,
   unlinkSync,
-  writeFileSync
+  writeFileSync,
 } from "fs";
 import fsExtra from "fs-extra";
 import { Element } from "hast";
