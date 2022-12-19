@@ -429,7 +429,7 @@ export class EPub {
               }
             }
 
-            for (const k in Object.keys(attrs)) {
+            for (const k of Object.keys(attrs)) {
               if (allowedAttributes.includes(k)) {
                 if (k === "type") {
                   if (attrs[k] !== "script") {
