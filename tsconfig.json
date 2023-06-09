@@ -1,11 +1,10 @@
 {
-	"extends": "@tsconfig/node16/tsconfig.json",
+	"extends": "@tsconfig/node18/tsconfig.json",
 	"compilerOptions": {
 		/* Visit https://aka.ms/tsconfig.json to read more about this file */
 		"outDir": "lib",
 		"rootDir": "src",
-		"module": "es2020",
-		"moduleResolution": "node",
+		"module": "ES2022",
 		"declaration": true,
 		"declarationDir": "lib"
 	},
