@@ -36,7 +36,7 @@
 		"lint": "eslint . --fix --ext .js,.jsx,.ts,.tsx",
 		"format": "prettier --write .",
 		"build": "tsc",
-		"test": "NODE_OPTIONS='--loader=ts-node/esm' ava"
+		"test": "NODE_OPTIONS='--loader=ts-node/esm' mocha"
 	},
 	"dependencies": {
 		"archiver": "^6.0.0",
@@ -59,13 +59,14 @@
 		"@types/ejs": "^3.1.2",
 		"@types/fs-extra": "^11.0.1",
 		"@types/mime": "^3.0.1",
+		"@types/mocha": "^10.0.1",
 		"@types/node": "^20.5.7",
 		"@types/uslug": "^1.0.2",
 		"@typescript-eslint/eslint-plugin": "^6.5.0",
 		"@typescript-eslint/parser": "^6.5.0",
-		"ava": "^5.3.1",
 		"eslint": "^8.48.0",
 		"eslint-config-prettier": "^9.0.0",
+		"mocha": "^10.2.0",
 		"prettier": "^3.0.3",
 		"ts-node": "^10.9.1",
 		"typescript": "^5.2.2"

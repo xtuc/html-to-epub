@@ -1,4 +1,4 @@
-import test from "ava";
+import assert from "assert";
 import { readFileSync } from "fs";
 import { resolve } from "path";
 import { fileURLToPath } from "url";
@@ -15,18 +15,18 @@ async function runTestOn(input: string): Promise<boolean> {
   return op.result === "ok";
 }
 
-test.serial("Ebook > generate v2", async (t) => {
-  t.is(await runTestOn("book-v2"), true);
-});
+it("Ebook > generate v2", async () => {
+  assert.strictEqual(await runTestOn("book-v2"), true);
+}).timeout(5000);
 
-test.serial("Ebook > generate v3", async (t) => {
-  t.is(await runTestOn("book-v3"), true);
-});
+it("Ebook > generate v3", async () => {
+  assert.strictEqual(await runTestOn("book-v3"), true);
+}).timeout(5000);
 
-test.serial("HTML Page > generate v2", async (t) => {
-  t.is(await runTestOn("article-v2"), true);
-});
+it("HTML Page > generate v2", async () => {
+  assert.strictEqual(await runTestOn("article-v2"), true);
+}).timeout(5000);
 
-test.serial("HTML Page > generate v3", async (t) => {
-  t.is(await runTestOn("article-v3"), true);
-});
+it("HTML Page > generate v3", async () => {
+  assert.strictEqual(await runTestOn("article-v3"), true);
+}).timeout(5000);
