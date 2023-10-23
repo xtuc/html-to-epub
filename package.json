@@ -79,5 +79,5 @@
 			"--loader=ts-node/esm"
 		]
 	},
-	"packageManager": "yarn@3.6.3"
+	"packageManager": "yarn@4.0.0"
 }
