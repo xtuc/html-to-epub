@@ -14,6 +14,7 @@ import {
 } from "fs";
 import fsExtra from "fs-extra";
 import { Element } from "hast";
+import { imageSize } from "image-size";
 import mime from "mime";
 import { basename, dirname, resolve } from "path";
 import rehypeParse from "rehype-parse";
@@ -22,6 +23,7 @@ import { Plugin, unified } from "unified";
 import { visit } from "unist-util-visit";
 import { fileURLToPath } from "url";
 import uslug from "uslug";
+import { promisify } from "util";
 
 // Allowed HTML attributes & tags
 const allowedAttributes = [
@@ -278,6 +280,7 @@ export interface EpubOptions {
   customOpfTemplatePath?: string;
   customNcxTocTemplatePath?: string;
   customHtmlTocTemplatePath?: string;
+  customHtmlCoverTemplatePath?: string;
   version?: number;
   userAgent?: string;
   verbose?: boolean;
@@ -292,6 +295,7 @@ interface EpubContent {
   url: string | null;
   author: Array<string>;
   filePath: string;
+  templatePath: string;
   excludeFromToc: boolean;
   beforeToc: boolean;
 }
@@ -311,6 +315,10 @@ export class EPub {
   cover: string | null;
   coverMediaType: string | null;
   coverExtension: string | null;
+  coverDimensions = {
+    width: 0,
+    height: 0,
+  };
   publisher: string;
   author: Array<string>;
   tocTitle: string;
@@ -323,6 +331,7 @@ export class EPub {
   images: Array<EpubImage>;
   customOpfTemplatePath: string | null;
   customNcxTocTemplatePath: string | null;
+  customHtmlCoverTemplatePath: string | null;
   customHtmlTocTemplatePath: string | null;
   version: number;
   userAgent: string;
@@ -360,6 +369,7 @@ export class EPub {
     this.customOpfTemplatePath = options.customOpfTemplatePath ?? null;
     this.customNcxTocTemplatePath = options.customNcxTocTemplatePath ?? null;
     this.customHtmlTocTemplatePath = options.customHtmlTocTemplatePath ?? null;
+    this.customHtmlCoverTemplatePath = options.customHtmlCoverTemplatePath ?? null;
     this.version = options.version ?? 3;
     this.userAgent =
       options.userAgent ??
@@ -385,143 +395,174 @@ export class EPub {
       this.coverExtension = null;
     }
 
-    // Parse contents & save images
+    const loadHtml = (content: string, plugins: Plugin[]) =>
+      unified()
+        .use(rehypeParse, { fragment: true })
+        .use(plugins)
+        // Voids: [] is required for epub generation, and causes little/no harm for non-epub usage
+        .use(rehypeStringify, { allowDangerousHtml: true, voids: [] })
+        .processSync(content)
+        .toString();
+
     this.images = [];
-    this.content = options.content.map<EpubContent>((content, index) => {
-      // Get the content URL & path
-      let href, filePath;
-      if (content.filename === undefined) {
-        const titleSlug = uslug(diacritics(content.title || "no title"));
-        href = `${index}_${titleSlug}.xhtml`;
-        filePath = resolve(this.tempEpubDir, `./OEBPS/${index}_${titleSlug}.xhtml`);
-      } else {
-        href = content.filename.match(/\.xhtml$/) ? content.filename : `${content.filename}.xhtml`;
-        if (content.filename.match(/\.xhtml$/)) {
-          filePath = resolve(this.tempEpubDir, `./OEBPS/${content.filename}`);
-        } else {
-          filePath = resolve(this.tempEpubDir, `./OEBPS/${content.filename}.xhtml`);
-        }
+    this.content = [];
+
+    // Insert cover in content
+    if (this.cover) {
+      const templatePath = this.customHtmlCoverTemplatePath || resolve(__dirname, "../templates/cover.xhtml.ejs");
+      if (!existsSync(templatePath)) {
+        throw new Error("Could not resolve path to cover template HTML.");
       }
 
-      // Content ID & directory
-      const id = `item_${index}`;
-      const dir = dirname(filePath);
+      this.content.push({
+        id: `item_${this.content.length}`,
+        href: "cover.xhtml",
+        title: "cover",
+        data: "",
+        url: null,
+        author: [],
+        filePath: resolve(this.tempEpubDir, `./OEBPS/cover.xhtml`),
+        templatePath,
+        excludeFromToc: true,
+        beforeToc: true,
+      });
+    }
 
-      const loadHtml = (content: string, plugins: Plugin[]) =>
-        unified()
-          .use(rehypeParse, { fragment: true })
-          .use(plugins)
-          // Voids: [] is required for epub generation, and causes little/no harm for non-epub usage
-          .use(rehypeStringify, { allowDangerousHtml: true, voids: [] })
-          .processSync(content)
-          .toString();
+    // Parse contents & save images
+    const contentTemplatePath = resolve(__dirname, "../templates/content.xhtml.ejs");
+    const contentOffset = this.content.length;
+    this.content.push(
+      ...options.content.map<EpubContent>((content, i) => {
+        const index = contentOffset + i;
 
-      // Parse the content
-      const html = loadHtml(content.data, [
-        () => (tree) => {
-          const validateElements = (node: Element) => {
-            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-            const attrs = node.properties!;
-            if (["img", "br", "hr"].includes(node.tagName)) {
-              if (node.tagName === "img") {
-                // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-                node.properties!.alt = node.properties?.alt || "image-placeholder";
+        // Get the content URL & path
+        let href, filePath;
+        if (content.filename === undefined) {
+          const titleSlug = uslug(diacritics(content.title || "no title"));
+          href = `${index}_${titleSlug}.xhtml`;
+          filePath = resolve(this.tempEpubDir, `./OEBPS/${index}_${titleSlug}.xhtml`);
+        } else {
+          href = content.filename.match(/\.xhtml$/) ? content.filename : `${content.filename}.xhtml`;
+          if (content.filename.match(/\.xhtml$/)) {
+            filePath = resolve(this.tempEpubDir, `./OEBPS/${content.filename}`);
+          } else {
+            filePath = resolve(this.tempEpubDir, `./OEBPS/${content.filename}.xhtml`);
+          }
+        }
+
+        // Content ID & directory
+        const id = `item_${index}`;
+        const dir = dirname(filePath);
+
+        // Parse the content
+        const html = loadHtml(content.data, [
+          () => (tree) => {
+            const validateElements = (node: Element) => {
+              // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+              const attrs = node.properties!;
+              if (["img", "br", "hr"].includes(node.tagName)) {
+                if (node.tagName === "img") {
+                  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+                  node.properties!.alt = node.properties?.alt || "image-placeholder";
+                }
               }
-            }
 
-            for (const k of Object.keys(attrs)) {
-              if (allowedAttributes.includes(k)) {
-                if (k === "type") {
-                  if (attrs[k] !== "script") {
-                    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-                    delete node.properties![k];
+              for (const k of Object.keys(attrs)) {
+                if (allowedAttributes.includes(k)) {
+                  if (k === "type") {
+                    if (attrs[k] !== "script") {
+                      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+                      delete node.properties![k];
+                    }
                   }
+                } else {
+                  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+                  delete node.properties![k];
                 }
+              }
+
+              if (this.version === 2) {
+                if (!allowedXhtml11Tags.includes(node.tagName)) {
+                  if (this.verbose) {
+                    console.log(
+                      "Warning (content[" + index + "]):",
+                      node.tagName,
+                      "tag isn't allowed on EPUB 2/XHTML 1.1 DTD."
+                    );
+                  }
+                  node.tagName = "div";
+                }
+              }
+            };
+
+            visit(tree, "element", validateElements);
+          },
+          () => (tree) => {
+            const processImgTags = (node: Element) => {
+              if (!["img", "input"].includes(node.tagName)) {
+                return;
+              }
+              // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+              const url = node.properties!.src as string | null | undefined;
+              if (url === undefined || url === null) {
+                return;
+              }
+
+              let extension, id;
+              const image = this.images.find((element) => element.url === url);
+              if (image) {
+                id = image.id;
+                extension = image.extension;
               } else {
-                // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-                delete node.properties![k];
-              }
-            }
-
-            if (this.version === 2) {
-              if (!allowedXhtml11Tags.includes(node.tagName)) {
-                if (this.verbose) {
-                  console.log(
-                    "Warning (content[" + index + "]):",
-                    node.tagName,
-                    "tag isn't allowed on EPUB 2/XHTML 1.1 DTD."
-                  );
+                id = uuid();
+                const mediaType = mime.getType(url.replace(/\?.*/, ""));
+                if (mediaType === null) {
+                  if (this.verbose) {
+                    console.error("[Image Error]", `The image can't be processed : ${url}`);
+                  }
+                  return;
                 }
-                node.tagName = "div";
-              }
-            }
-          };
-
-          visit(tree, "element", validateElements);
-        },
-        () => (tree) => {
-          const processImgTags = (node: Element) => {
-            if (!["img", "input"].includes(node.tagName)) {
-              return;
-            }
-            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-            const url = node.properties!.src as string | null | undefined;
-            if (url === undefined || url === null) {
-              return;
-            }
-
-            let extension, id;
-            const image = this.images.find((element) => element.url === url);
-            if (image) {
-              id = image.id;
-              extension = image.extension;
-            } else {
-              id = uuid();
-              const mediaType = mime.getType(url.replace(/\?.*/, ""));
-              if (mediaType === null) {
-                if (this.verbose) {
-                  console.error("[Image Error]", `The image can't be processed : ${url}`);
+                extension = mime.getExtension(mediaType);
+                if (extension === null) {
+                  if (this.verbose) {
+                    console.error("[Image Error]", `The image can't be processed : ${url}`);
+                  }
+                  return;
                 }
-                return;
+                this.images.push({ id, url, dir, mediaType, extension });
               }
-              extension = mime.getExtension(mediaType);
-              if (extension === null) {
-                if (this.verbose) {
-                  console.error("[Image Error]", `The image can't be processed : ${url}`);
-                }
-                return;
-              }
-              this.images.push({ id, url, dir, mediaType, extension });
-            }
-            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-            node.properties!.src = `images/${id}.${extension}`;
-          };
+              // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+              node.properties!.src = `images/${id}.${extension}`;
+            };
 
-          visit(tree, "element", processImgTags);
-        },
-      ]);
+            visit(tree, "element", processImgTags);
+          },
+        ]);
 
-      // Return the EpubContent
-      return {
-        id: id,
-        href: href,
-        title: content.title,
-        data: html,
-        url: content.url ?? null,
-        author: content.author ? (typeof content.author === "string" ? [content.author] : content.author) : [],
-        filePath: filePath,
-        excludeFromToc: content.excludeFromToc === true, // Default to false
-        beforeToc: content.beforeToc === true, // Default to false
-      };
-    });
+        // Return the EpubContent
+        return {
+          id,
+          href,
+          title: content.title,
+          data: html,
+          url: content.url ?? null,
+          author: content.author ? (typeof content.author === "string" ? [content.author] : content.author) : [],
+          filePath,
+          templatePath: contentTemplatePath,
+          excludeFromToc: content.excludeFromToc === true, // Default to false
+          beforeToc: content.beforeToc === true, // Default to false
+        };
+      })
+    );
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  async render(): Promise<any> {
-    if (this.verbose) {
-      console.log("Generating Template Files.....");
+  async render(): Promise<{ result: string }> {
+    // Create directories
+    if (!existsSync(this.tempDir)) {
+      mkdirSync(this.tempDir);
     }
-    await this.generateTempFile(this.content);
+    mkdirSync(this.tempEpubDir);
+    mkdirSync(resolve(this.tempEpubDir, "./OEBPS"));
 
     if (this.verbose) {
       console.log("Downloading Images...");
@@ -532,6 +573,11 @@ export class EPub {
       console.log("Making Cover...");
     }
     await this.makeCover();
+
+    if (this.verbose) {
+      console.log("Generating Template Files.....");
+    }
+    await this.generateTempFile(this.content);
 
     if (this.verbose) {
       console.log("Generating Epub Files...");
@@ -557,13 +603,6 @@ export class EPub {
 <html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops" lang="${this.lang}">
 `;
 
-    // Create directories
-    if (!existsSync(this.tempDir)) {
-      mkdirSync(this.tempDir);
-    }
-    mkdirSync(this.tempEpubDir);
-    mkdirSync(resolve(this.tempEpubDir, "./OEBPS"));
-
     // Copy the CSS style
     if (!this.css) {
       this.css = readFileSync(resolve(__dirname, "../templates/template.css"), { encoding: "utf8" });
@@ -584,24 +623,22 @@ export class EPub {
     }
 
     // Write content files
-    contents.forEach((content) => {
-      let data = `${docHeader}
-  <head>
-  <title>${encodeXML(content.title || "")}</title>
-  <link rel="stylesheet" type="text/css" href="style.css" />
-  </head>
-<body>
-`;
-      data += content.title && this.appendChapterTitles ? `<h1>${encodeXML(content.title)}</h1>` : "";
-      data +=
-        content.title && content.author && content.author.length
-          ? `<p class='epub-author'>${encodeXML(content.author.join(", "))}</p>`
-          : "";
-      data +=
-        content.title && content.url ? `<p class='epub-link'><a href='${content.url}'>${content.url}</a></p>` : "";
-      data += `${content.data}</body></html>`;
-      writeFileSync(content.filePath, data);
-    });
+    for (const content of contents) {
+      const result = await renderFile(
+        content.templatePath,
+        {
+          ...this,
+          ...content,
+          bookTitle: this.title,
+          encodeXML,
+          docHeader,
+        },
+        {
+          escape: (markup) => markup,
+        }
+      );
+      writeFileSync(content.filePath, result);
+    }
 
     // write meta-inf/container.xml
     mkdirSync(this.tempEpubDir + "/META-INF");
@@ -653,8 +690,7 @@ export class EPub {
 
     const destPath = resolve(this.tempEpubDir, `./OEBPS/cover.${this.coverExtension}`);
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let writeStream: any;
+    let writeStream: fsExtra.ReadStream;
     if (this.cover.slice(0, 4) === "http" || this.cover.slice(0, 2) === "//") {
       try {
         const httpRequest = await axios.get(this.cover, {
@@ -674,21 +710,35 @@ export class EPub {
       writeStream.pipe(createWriteStream(destPath));
     }
 
-    return new Promise((resolve, reject) => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      writeStream.on("error", (err: any) => {
+    const promiseStream = new Promise<void>((resolve, reject) => {
+      writeStream.on("end", () => resolve());
+      writeStream.on("error", (err: unknown) => {
         console.error("Error", err);
         unlinkSync(destPath);
         reject(err);
       });
-
-      writeStream.on("end", () => {
-        if (this.verbose) {
-          console.log("[Success] cover image downloaded successfully!");
-        }
-        resolve();
-      });
     });
+
+    await promiseStream;
+
+    if (this.verbose) {
+      console.log("[Success] cover image downloaded successfully!");
+    }
+
+    const sizeOf = promisify(imageSize);
+
+    // Retrieve image dimensions
+    const result = await sizeOf(destPath);
+    if (!result || !result.width || !result.height) {
+      throw new Error(`Failed to retrieve cover image dimensions for "${destPath}"`);
+    }
+
+    this.coverDimensions.width = result.width;
+    this.coverDimensions.height = result.height;
+
+    if (this.verbose) {
+      console.log(`cover image dimensions: ${this.coverDimensions.width} x ${this.coverDimensions.height}`);
+    }
   }
 
   private async downloadImage(image: EpubImage): Promise<void> {
