@@ -458,11 +458,9 @@ export class EPub {
         const html = loadHtml(content.data, [
           () => (tree) => {
             const validateElements = (node: Element) => {
-              // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
               const attrs = node.properties!;
               if (["img", "br", "hr"].includes(node.tagName)) {
                 if (node.tagName === "img") {
-                  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
                   node.properties!.alt = node.properties?.alt || "image-placeholder";
                 }
               }
@@ -471,12 +469,10 @@ export class EPub {
                 if (allowedAttributes.includes(k)) {
                   if (k === "type") {
                     if (attrs[k] !== "script") {
-                      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
                       delete node.properties![k];
                     }
                   }
                 } else {
-                  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
                   delete node.properties![k];
                 }
               }
@@ -502,7 +498,6 @@ export class EPub {
               if (!["img", "input"].includes(node.tagName)) {
                 return;
               }
-              // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
               const url = node.properties!.src as string | null | undefined;
               if (url === undefined || url === null) {
                 return;
@@ -531,7 +526,6 @@ export class EPub {
                 }
                 this.images.push({ id, url, dir, mediaType, extension });
               }
-              // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
               node.properties!.src = `images/${id}.${extension}`;
             };
 
