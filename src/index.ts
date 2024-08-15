@@ -416,7 +416,8 @@ export class EPub {
 
     // Insert cover in content
     if (this.cover) {
-      const templatePath = this.customHtmlCoverTemplatePath || resolve(__dirname, "../templates/cover.xhtml.ejs");
+      const templatePath =
+        this.customHtmlCoverTemplatePath || resolve(__dirname, `../templates/epub${this.version}/cover.xhtml.ejs`);
       if (!existsSync(templatePath)) {
         throw new Error("Could not resolve path to cover template HTML.");
       }
