@@ -67,6 +67,8 @@ epub.render()
     Title of the table of contents. If not specified, will fallback to `Table Of Contents`.
 -   `appendChapterTitles`:
     Automatically append the chapter title at the beginning of each contents. You can disable that by specifying `false`.
+-   `hideToC`:
+    Hide the Table of content in the generated EPUB (optional, default to `false`).
 -   `customOpfTemplatePath`:
     Optional. For advanced customizations: absolute path to an OPF template.
 -   `customNcxTocTemplatePath`:

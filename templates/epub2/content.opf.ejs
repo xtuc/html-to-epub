@@ -50,7 +50,7 @@
             <% } %>
         <% }) %>
         <% if (locals.cover) { %><itemref idref="cover"/><% } %>
-        <itemref idref="toc" />
+        <% if (locals.showToC) { %><itemref idref="toc" /><% } %>
         <% content.forEach(function(content, index){ %>
             <% if(!content.beforeToc && !content.excludeFromToc){ %>
                 <itemref idref="content_<%= index %>_<%= content.id %>"/>
@@ -59,6 +59,6 @@
     </spine>
     <guide>
         <% if (locals.cover) { %><reference type="cover" title="Cover" href="cover.xhtml"/><% } %>
-        <reference type="text" title="Table of Content" href="toc.xhtml"/>
+        <% if (locals.showToC) { %><reference type="text" title="Table of Content" href="toc.xhtml"/><% } %>
     </guide>
 </package>

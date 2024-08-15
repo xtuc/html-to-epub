@@ -272,6 +272,7 @@ export interface EpubOptions {
   author?: Array<string> | string;
   tocTitle?: string;
   appendChapterTitles?: boolean;
+  hideToC?: boolean;
   date?: string;
   lang?: string;
   css?: string;
@@ -326,6 +327,7 @@ export class EPub {
   author: Array<string>;
   tocTitle: string;
   appendChapterTitles: boolean;
+  showToC: boolean;
   date: string;
   lang: string;
   css: string | null;
@@ -367,6 +369,7 @@ export class EPub {
     }
     this.tocTitle = options.tocTitle ?? "Table Of Contents";
     this.appendChapterTitles = options.appendChapterTitles ?? true;
+    this.showToC = options.hideToC !== true;
     this.date = options.date ?? new Date().toISOString();
     this.lang = options.lang ?? "en";
     this.css = options.css ?? null;
