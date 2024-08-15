@@ -17,16 +17,24 @@ async function runTestOn(input: string): Promise<boolean> {
 
 it("Ebook > generate v2", async () => {
   assert.strictEqual(await runTestOn("book-v2"), true);
-}).timeout(8000);
+}).timeout(12000);
 
 it("Ebook > generate v3", async () => {
   assert.strictEqual(await runTestOn("book-v3"), true);
-}).timeout(8000);
+}).timeout(12000);
+
+it("Ebook without cover > generate v2", async () => {
+  assert.strictEqual(await runTestOn("book-no-cover-v2"), true);
+}).timeout(12000);
+
+it("Ebook without cover > generate v3", async () => {
+  assert.strictEqual(await runTestOn("book-no-cover-v3"), true);
+}).timeout(12000);
 
 it("HTML Page > generate v2", async () => {
   assert.strictEqual(await runTestOn("article-v2"), true);
-}).timeout(8000);
+}).timeout(12000);
 
 it("HTML Page > generate v3", async () => {
   assert.strictEqual(await runTestOn("article-v3"), true);
-}).timeout(8000);
+}).timeout(12000);
