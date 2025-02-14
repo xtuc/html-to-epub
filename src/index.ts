@@ -478,95 +478,22 @@ export class EPub {
         // Parse the content
         const html = loadHtml(content.data, [
           () => (tree) => {
-            const validateElements = (node: Element) => {
-              const attrs = node.properties!;
-              if (["img", "br", "hr"].includes(node.tagName)) {
-                if (node.tagName === "img") {
-                  node.properties!.alt = node.properties?.alt || "image-placeholder";
-                }
-              }
-
-              for (const k of Object.keys(attrs)) {
-                if (this.allowedAttributes.includes(k)) {
-                  if (k === "type") {
-                    if (attrs[k] !== "script") {
-                      delete node.properties![k];
-                    }
-                  } else if (k === "controls") {
-                    if (attrs[k] === true) {
-                      node.properties![k] = "Controls";
-                    }
-                  }
-                } else {
-                  delete node.properties![k];
-                }
-              }
-
-              if (this.version === 2) {
-                if (!this.allowedXhtml11Tags.includes(node.tagName)) {
-                  if (this.verbose) {
-                    console.log(
-                      "Warning (content[" + index + "]):",
-                      node.tagName,
-                      "tag isn't allowed on EPUB 2/XHTML 1.1 DTD."
-                    );
-                  }
-                  node.tagName = "div";
-                }
-              }
-            };
-
-            visit(tree, "element", validateElements);
+            visit(tree, "element", (node: Element) => {
+              this.validateElement(index, node);
+            });
           },
           () => (tree) => {
-            const processMediaTags = (node: Element) => {
-              const url = node.properties!.src as string | null | undefined;
-              if (url === undefined || url === null) {
-                return;
-              }
-              let mediaArray;
-              let subfolder;
+            visit(tree, "element", (node: Element) => {
               if (["img", "input"].includes(node.tagName)) {
-                mediaArray = this.images;
-                subfolder = "images";
+                this.processMediaTag(index, dir, node, this.images, "images");
               } else if (
                 this.downloadAudioVideoFiles &&
                 this.version !== 2 &&
                 ["audio", "video"].includes(node.tagName)
               ) {
-                mediaArray = this.audioVideo;
-                subfolder = "audiovideo";
-              } else {
-                return;
+                this.processMediaTag(index, dir, node, this.audioVideo, "audiovideo");
               }
-
-              let extension, id;
-              const media = mediaArray.find((element) => element.url === url);
-              if (media) {
-                id = media.id;
-                extension = media.extension;
-              } else {
-                id = uuid();
-                const mediaType = mime.getType(url.replace(/\?.*/, ""));
-                if (mediaType === null) {
-                  if (this.verbose) {
-                    console.error("[Image Error]", `The media can't be processed : ${url}`);
-                  }
-                  return;
-                }
-                extension = mime.getExtension(mediaType);
-                if (extension === null) {
-                  if (this.verbose) {
-                    console.error("[Image Error]", `The media can't be processed : ${url}`);
-                  }
-                  return;
-                }
-                mediaArray.push({ id, url, dir, mediaType, extension });
-              }
-              node.properties!.src = `${subfolder}/${id}.${extension}`;
-            };
-
-            visit(tree, "element", processMediaTags);
+            });
           },
         ]);
 
@@ -586,6 +513,84 @@ export class EPub {
         };
       })
     );
+  }
+
+  private validateElement(contentIndex: number, node: Element): void {
+    const attrs = node.properties!;
+    if (["img", "br", "hr"].includes(node.tagName)) {
+      if (node.tagName === "img") {
+        node.properties!.alt = node.properties?.alt || "image-placeholder";
+      }
+    }
+
+    for (const k of Object.keys(attrs)) {
+      if (this.allowedAttributes.includes(k)) {
+        if (k === "type") {
+          if (attrs[k] !== "script") {
+            delete node.properties![k];
+          }
+        } else if (k === "controls") {
+          if (attrs[k] === true) {
+            node.properties![k] = "Controls";
+          }
+        }
+      } else {
+        delete node.properties![k];
+      }
+    }
+
+    if (this.version === 2) {
+      if (!this.allowedXhtml11Tags.includes(node.tagName)) {
+        if (this.verbose) {
+          console.log(
+            `[Warning] (content[${contentIndex}]) ${node.tagName} tag isn't allowed on EPUB 2/XHTML 1.1 DTD.`
+          );
+        }
+        node.tagName = "div";
+      }
+    }
+  }
+
+  private processMediaTag(
+    contentIndex: number,
+    dir: string,
+    node: Element,
+    mediaArray: Array<EpubMedia>,
+    subfolder: string
+  ): void {
+    const url = node.properties!.src as string | null | undefined;
+    if (url === undefined || url === null) {
+      return;
+    }
+
+    let extension, id;
+    const media = mediaArray.find((element) => element.url === url);
+    if (media) {
+      id = media.id;
+      extension = media.extension;
+    } else {
+      id = uuid();
+      const mediaType = mime.getType(url.replace(/\?.*/, ""));
+      if (mediaType === null) {
+        if (this.verbose) {
+          console.error(
+            `[Media Error] (content[${contentIndex}]) (subfolder=${subfolder}) The media can't be processed : ${url}`
+          );
+        }
+        return;
+      }
+      extension = mime.getExtension(mediaType);
+      if (extension === null) {
+        if (this.verbose) {
+          console.error(
+            `[Media Error] (content[${contentIndex}]) (subfolder=${subfolder}) The media can't be processed : ${url}`
+          );
+        }
+        return;
+      }
+      mediaArray.push({ id, url, dir, mediaType, extension });
+    }
+    node.properties!.src = `${subfolder}/${id}.${extension}`;
   }
 
   async render(): Promise<{ result: string }> {
