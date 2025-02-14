@@ -7,10 +7,8 @@
          xml:lang="en"
          xmlns:media="http://www.idpf.org/epub/vocab/overlays/#"
          prefix="ibooks: http://vocabulary.itunes.apple.com/rdf/ibooks/vocabulary-extensions-1.0/">
-
     <metadata xmlns:dc="http://purl.org/dc/elements/1.1/"
               xmlns:opf="http://www.idpf.org/2007/opf">
-
         <dc:identifier id="BookId"><%= uuid %></dc:identifier>
         <meta refines="#BookId" property="identifier-type" scheme="onix:codelist5">22</meta>
         <meta property="dcterms:identifier" id="meta-identifier">BookId</meta>
@@ -31,9 +29,7 @@
         <% if(locals.cover || (locals.useFirstImageAsCover && images.length)) { %><meta name="cover" content="<%= locals.cover ? 'image_cover' : 'image_0' %>"/><% } %>
         <meta name="generator" content="epub-gen" />
         <meta property="ibooks:specified-fonts">true</meta>
-
     </metadata>
-
     <manifest>
         <% if (locals.cover) { %><item id="cover" href="cover.xhtml" media-type="application/xhtml+xml" properties="svg"/><% } %>
         <item id="ncx" href="toc.ncx" media-type="application/x-dtbncx+xml" />
@@ -51,7 +47,6 @@
         <% }) %>
         <% fonts.forEach(function(font, index){%><item id="font_<%= index%>" href="fonts/<%= font %>" media-type="application/x-font-ttf" /><%})%>
     </manifest>
-
     <spine toc="ncx">
         <% content.forEach(function(content, index){ %>
             <% if(content.beforeToc && !content.excludeFromToc){ %>
@@ -69,6 +64,6 @@
     <guide>
         <% if (locals.cover) { %><reference type="cover" title="Cover" href="cover.xhtml"/><% } %>
         <% if (locals.showToC) { %><reference type="toc" title="Table of Content" href="toc.xhtml"/><% } %>
-        <reference type="text" title="Start of Content" href="<%= content.find((c) => !c.excludeFromToc).href %>"/>
+        <reference type="text" title="Start of Content" href="<%= locals.startOfContentHref %>"/>
     </guide>
 </package>

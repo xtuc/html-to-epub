@@ -352,6 +352,7 @@ export class EPub {
   output: string;
   allowedAttributes: string[];
   allowedXhtml11Tags: string[];
+  startOfContentHref: string;
 
   constructor(options: EpubOptions, output: string) {
     // File ID
@@ -365,7 +366,6 @@ export class EPub {
     // Options with defaults
     this.cover = options.cover ?? null;
     this.useFirstImageAsCover = options.useFirstImageAsCover ?? false;
-    this.downloadAudioVideoFiles = options.downloadAudioVideoFiles ?? false;
     this.publisher = options.publisher ?? "anonymous";
     this.author = options.author
       ? typeof options.author === "string"
@@ -387,6 +387,7 @@ export class EPub {
     this.customHtmlTocTemplatePath = options.customHtmlTocTemplatePath ?? null;
     this.customHtmlCoverTemplatePath = options.customHtmlCoverTemplatePath ?? null;
     this.version = options.version ?? 3;
+    this.downloadAudioVideoFiles = this.version !== 2 ? (options.downloadAudioVideoFiles ?? false) : false; // Disable audio/video downloads for EPUB 2
     this.userAgent =
       options.userAgent ??
       "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/84.0.4147.105 Safari/537.36";
@@ -486,11 +487,7 @@ export class EPub {
             visit(tree, "element", (node: Element) => {
               if (["img", "input"].includes(node.tagName)) {
                 this.processMediaTag(index, dir, node, this.images, "images");
-              } else if (
-                this.downloadAudioVideoFiles &&
-                this.version !== 2 &&
-                ["audio", "video"].includes(node.tagName)
-              ) {
+              } else if (this.downloadAudioVideoFiles && ["audio", "video"].includes(node.tagName)) {
                 this.processMediaTag(index, dir, node, this.audioVideo, "audiovideo");
               }
             });
@@ -513,6 +510,13 @@ export class EPub {
         };
       })
     );
+
+    // Get the link to the start of content
+    const firstContentInToc = this.content.find((el) => !el.excludeFromToc);
+    if (firstContentInToc === undefined) {
+      throw new Error("At least one element have to be included in the ToC!");
+    }
+    this.startOfContentHref = firstContentInToc.href;
   }
 
   private validateElement(contentIndex: number, node: Element): void {

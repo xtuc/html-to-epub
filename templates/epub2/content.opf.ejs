@@ -2,10 +2,8 @@
 <package xmlns="http://www.idpf.org/2007/opf"
          version="2.0"
          unique-identifier="BookId">
-
     <metadata xmlns:dc="http://purl.org/dc/elements/1.1/"
               xmlns:opf="http://www.idpf.org/2007/opf">
-
         <dc:identifier id="BookId" opf:scheme="URN"><%= uuid %></dc:identifier>
         <dc:title><%= title %></dc:title>
         <dc:description><%= description %></dc:description>
@@ -15,9 +13,7 @@
         <dc:language><%= lang || "en" %></dc:language>
         <% if(locals.cover || (locals.useFirstImageAsCover && images.length)) { %><meta name="cover" content="<%= locals.cover ? 'image_cover' : 'image_0' %>"/><% } %>
         <meta name="generator" content="epub-gen" />
-
     </metadata>
-
     <manifest>
         <% if (locals.cover) { %><item id="cover" href="cover.xhtml" media-type="application/xhtml+xml"/><% } %>
         <item id="ncx" href="toc.ncx" media-type="application/x-dtbncx+xml" />
@@ -34,7 +30,6 @@
         <% }) %>
         <% fonts.forEach(function(font, index) { %><item id="font_<%= index %>" href="fonts/<%= font %>" media-type="application/x-font-ttf" /><% }) %>
     </manifest>
-
     <spine toc="ncx">
         <% content.forEach(function(content, index){ %>
             <% if(content.beforeToc && !content.excludeFromToc){ %>
@@ -52,6 +47,6 @@
     <guide>
         <% if (locals.cover) { %><reference type="cover" title="Cover" href="cover.xhtml"/><% } %>
         <% if (locals.showToC) { %><reference type="toc" title="Table of Content" href="toc.xhtml"/><% } %>
-        <reference type="text" title="Start of Content" href="<%= content.find((c) => !c.excludeFromToc).href %>"/>
+        <reference type="text" title="Start of Content" href="<%= locals.startOfContentHref %>"/>
     </guide>
 </package>
