@@ -26,7 +26,7 @@
         <dc:date><%= stringDate %></dc:date>
         <meta property="dcterms:rights">All rights reserved</meta>
         <dc:rights>Copyright &#x00A9; <%= (new Date()).getFullYear() %> by <%= publisher || "anonymous" %></dc:rights>
-        <% if(locals.cover || (locals.useFirstImageAsCover && images.length)) { %><meta name="cover" content="<%= locals.cover ? 'image_cover' : 'image_0' %>"/><% } %>
+        <% if(locals.coverMetaContent) { %><meta name="cover" content="<%= locals.coverMetaContent %>"/><% } %>
         <meta name="generator" content="epub-gen" />
         <meta property="ibooks:specified-fonts">true</meta>
     </metadata>
@@ -37,7 +37,7 @@
         <item id="css" href="style.css" media-type="text/css" />
         <% if(locals.cover) { %><item id="image_cover" href="cover.<%= coverExtension %>" media-type="<%= coverMediaType %>" properties="cover-image" /><% } %>
         <% images.forEach(function(image, index){ %>
-        <item id="image_<%= index %>" href="images/<%= image.id %>.<%= image.extension %>" media-type="<%= image.mediaType %>" <% if(index === 0 && !locals.cover && locals.useFirstImageAsCover){ %>properties="cover-image"<% } %> />
+        <item id="image_<%= index %>" href="images/<%= image.id %>.<%= image.extension %>" media-type="<%= image.mediaType %>" <% if(image.isCoverImage){ %>properties="cover-image"<% } %> />
         <% }) %>
         <% audioVideo.forEach(function(media, index){ %>
         <item id="media_<%= index %>" href="audiovideo/<%= media.id %>.<%= media.extension %>" media-type="<%= media.mediaType %>" />

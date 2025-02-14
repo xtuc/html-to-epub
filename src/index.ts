@@ -313,6 +313,7 @@ interface EpubMedia {
   dir: string;
   mediaType: string;
   extension: string;
+  isCoverImage?: boolean;
 }
 
 export class EPub {
@@ -352,6 +353,7 @@ export class EPub {
   output: string;
   allowedAttributes: string[];
   allowedXhtml11Tags: string[];
+  coverMetaContent: string | null;
   startOfContentHref: string;
 
   constructor(options: EpubOptions, output: string) {
@@ -510,6 +512,19 @@ export class EPub {
         };
       })
     );
+
+    // Prepare the cover meta
+    if (this.cover) {
+      this.coverMetaContent = "image_cover";
+    } else {
+      // Check if we can use the first image as a cover
+      if (this.useFirstImageAsCover && this.images.length > 0) {
+        this.coverMetaContent = "image_0";
+        this.images[0].isCoverImage = true; // Flag the image as a cover
+      } else {
+        this.coverMetaContent = null;
+      }
+    }
 
     // Get the link to the start of content
     const firstContentInToc = this.content.find((el) => !el.excludeFromToc);
