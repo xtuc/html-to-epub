@@ -599,7 +599,7 @@ export class EPub {
     if (this.verbose) {
       console.log("Downloading Media...");
     }
-    await this.downloadAllMedia(this.images, this.audioVideo);
+    await this.downloadAllMedia();
 
     if (this.verbose) {
       console.log("Making Cover...");
@@ -609,7 +609,7 @@ export class EPub {
     if (this.verbose) {
       console.log("Generating Template Files.....");
     }
-    await this.generateTempFile(this.content);
+    await this.generateTemplateFiles();
 
     if (this.verbose) {
       console.log("Generating Epub Files...");
@@ -622,7 +622,7 @@ export class EPub {
     return { result: "ok" };
   }
 
-  private async generateTempFile(contents: Array<EpubContent>) {
+  private async generateTemplateFiles() {
     // Create the document's Header
     const docHeader =
       this.version === 2
@@ -655,7 +655,7 @@ export class EPub {
     }
 
     // Write content files
-    for (const content of contents) {
+    for (const content of this.content) {
       const result = await renderFile(
         content.templatePath,
         {
@@ -673,7 +673,7 @@ export class EPub {
     }
 
     // write meta-inf/container.xml
-    mkdirSync(this.tempEpubDir + "/META-INF");
+    mkdirSync(`${this.tempEpubDir}/META-INF`);
     writeFileSync(
       `${this.tempEpubDir}/META-INF/container.xml`,
       '<?xml version="1.0" encoding="UTF-8" ?><container version="1.0" xmlns="urn:oasis:names:tc:opendocument:xmlns:container"><rootfiles><rootfile full-path="OEBPS/content.opf" media-type="application/oebps-package+xml"/></rootfiles></container>'
@@ -821,17 +821,17 @@ export class EPub {
     });
   }
 
-  private async downloadAllMedia(images: Array<EpubMedia>, audioVideo: Array<EpubMedia>): Promise<void> {
-    if (images.length > 0) {
+  private async downloadAllMedia(): Promise<void> {
+    if (this.images.length > 0) {
       mkdirSync(resolve(this.tempEpubDir, "./OEBPS/images"));
-      for (let index = 0; index < images.length; index++) {
-        await this.downloadMedia(images[index], "images");
+      for (let index = 0; index < this.images.length; index++) {
+        await this.downloadMedia(this.images[index], "images");
       }
     }
-    if (audioVideo.length > 0) {
+    if (this.audioVideo.length > 0) {
       mkdirSync(resolve(this.tempEpubDir, "./OEBPS/audiovideo"));
-      for (let index = 0; index < audioVideo.length; index++) {
-        await this.downloadMedia(audioVideo[index], "audiovideo");
+      for (let index = 0; index < this.audioVideo.length; index++) {
+        await this.downloadMedia(this.audioVideo[index], "audiovideo");
       }
     }
   }
@@ -853,14 +853,14 @@ export class EPub {
         console.log("Zipping temp dir to", this.output);
       }
       archive.append("application/epub+zip", { store: true, name: "mimetype" });
-      archive.directory(cwd + "/META-INF", "META-INF");
-      archive.directory(cwd + "/OEBPS", "OEBPS");
+      archive.directory(`${cwd}/META-INF`, "META-INF");
+      archive.directory(`${cwd}/OEBPS`, "OEBPS");
       archive.pipe(output);
       archive.on("end", () => {
-        if (this.verbose) {
-          console.log("Done zipping, clearing temp dir...");
-        }
         output.end(() => {
+          if (this.verbose) {
+            console.log("Done zipping, clearing temp dir...");
+          }
           fsExtra.removeSync(cwd);
           resolve();
         });
