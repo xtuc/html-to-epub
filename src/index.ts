@@ -14,7 +14,7 @@ import {
 } from "fs";
 import fsExtra from "fs-extra";
 import { Element } from "hast";
-import { imageSize } from "image-size";
+import { imageSizeFromFile } from "image-size/fromFile";
 import mime from "mime";
 import { basename, dirname, resolve } from "path";
 import rehypeParse from "rehype-parse";
@@ -23,7 +23,6 @@ import { Plugin, unified } from "unified";
 import { visit } from "unist-util-visit";
 import { fileURLToPath } from "url";
 import uslug from "uslug";
-import { promisify } from "util";
 
 // Allowed HTML attributes & tags
 export const defaultAllowedAttributes = [
@@ -780,10 +779,8 @@ export class EPub {
       console.log("[Success] cover image downloaded successfully!");
     }
 
-    const sizeOf = promisify(imageSize);
-
     // Retrieve image dimensions
-    const result = await sizeOf(destPath);
+    const result = await imageSizeFromFile(destPath);
     if (!result || !result.width || !result.height) {
       throw new Error(`Failed to retrieve cover image dimensions for "${destPath}"`);
     }
