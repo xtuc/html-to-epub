@@ -7,6 +7,6 @@
 		"declaration": true,
 		"declarationDir": "lib"
 	},
-	"include": ["src/**/*"],
+	"include": ["./global.d.ts", "src/**/*"],
 	"exclude": ["node_modules", "**/*.spec.ts"]
 }

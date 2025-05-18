@@ -1,7 +1,7 @@
-<%= docHeader %>
+{{{ docHeader }}}
 <head>
     <meta charset="UTF-8" />
-    <title><%= encodeXML(bookTitle || "") %></title>
+    <title>{{ bookTitle }}</title>
     <link rel="stylesheet" type="text/css" href="style.css" />
 </head>
 <body class="cover">
@@ -12,13 +12,13 @@
             version="1.1"
             width="100%"
             height="100%"
-            viewBox="0 0 <%= coverDimensions.width %> <%= coverDimensions.height %>"
+            viewBox="0 0 {{ coverDimensions.width }} {{ coverDimensions.height }}"
             preserveAspectRatio="none"
         >
             <image
-                width="<%= coverDimensions.width %>"
-                height="<%= coverDimensions.height %>"
-                xlink:href="cover.<%= coverExtension %>"
+                width="{{ coverDimensions.width }}"
+                height="{{ coverDimensions.height }}"
+                xlink:href="cover.{{ coverExtension }}"
             />
         </svg>
     </div>
