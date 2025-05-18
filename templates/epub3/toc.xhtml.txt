@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops" xml:lang="{{ lang }}" lang="{{ lang }}">
+<head>
+    <title>{{ title }}</title>
+    <meta charset="UTF-8" />
+    <link rel="stylesheet" type="text/css" href="style.css" />
+</head>
+<body>
+    <h1 class="h1">{{ tocTitle }}</h1>
+<nav id="toc" epub:type="toc">
+    <ol>
+        {{#content}}
+            {{^excludeFromToc}}
+                {{#beforeToc}}
+                <li class="table-of-content">
+                    <a href="{{ href }}">
+                        {{ title }}
+                        {{#author}}- <small class="toc-author">{{ author }}</small>{{/author}}
+                        {{#url}}- <span class="toc-link">{{url}}</span>{{/url}}
+                    </a>
+                </li>
+                {{/beforeToc}}
+            {{/excludeFromToc}}
+        {{/content}}
+
+        {{#content}}
+            {{^excludeFromToc}}
+                {{^beforeToc}}
+                <li class="table-of-content">
+                    <a href="{{ href }}">
+                        {{ title }}
+                        {{#author}}- <small class="toc-author">{{ author }}</small>{{/author}}
+                        {{#url}}- <span class="toc-link">{{url}}</span>{{/url}}
+                    </a>
+                </li>
+                {{/beforeToc}}
+            {{/excludeFromToc}}
+        {{/content}}
+    </ol>
+</nav>
+<nav epub:type="landmarks" hidden="hidden">
+    <h2>Guide</h2>
+    <ol>
+        {{#cover}}
+        <li><a epub:type="cover" href="cover.xhtml">Cover</a></li>
+        {{/cover}}
+
+        {{#showToC}}
+        <li><a epub:type="toc" href="#toc">Table of Contents</a></li>
+        {{/showToC}}
+
+        <li><a epub:type="bodymatter" href="{{ startOfContentHref }}">Start of Content</a></li>
+    </ol>
+</nav>
+</body>
+</html>

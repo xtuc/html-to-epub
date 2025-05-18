@@ -1,0 +1,27 @@
+{{{ docHeader }}}
+<head>
+    <title>{{ bookTitle }}</title>
+    <link rel="stylesheet" type="text/css" href="style.css" />
+</head>
+<body>
+    {{#title}}
+        {{#appendChapterTitles}}
+            <h1>{{ title }}</h1>
+        {{/appendChapterTitles}}
+    {{/title}}
+
+    {{#title}}
+        {{#author}}
+            <p class='epub-author'>{{ author }}</p>
+        {{/author}}
+    {{/title}}
+
+    {{#title}}
+        {{#url}}
+            <p class='epub-link'><a href='{{ url }}'>{{ url }}</a></p>
+        {{/url}}
+    {{/title}}
+
+    {{{ data }}}
+</body>
+</html>
